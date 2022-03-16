@@ -1,0 +1,96 @@
+-- Consulta peliculas con más renta
+
+SELECT TITULO, MAX(precio_renta)
+FROM peliculas
+GROUP BY titulo;
+
+-- Consulta peliculas con menos renta
+
+SELECT TITULO, MIN(precio_renta) as Precio_minimo
+FROM peliculas
+GROUP BY titulo
+ORDER BY Precio_minimo;
+
+-- La sumatoria de la columna precio_renta de la tabla peliculas
+SELECT SUM(precio_renta)
+FROM peliculas;
+
+-- Contar una columna dada una clasificación por categorias
+SELECT clasificacion, COUNT(*)
+FROM peliculas
+GROUP BY clasificacion;
+
+-- Promedio
+SELECT AVG(precio_renta)
+from peliculas;
+
+-- Precio promedio ordenado de forma descendente, tambien puede usar ASC
+SELECT clasificacion, AVG(precio_renta) AS precio_promedio
+FROM peliculas
+GROUP BY clasificacion
+ORDER BY precio_promedio DESC;
+
+--crear un campo JSON desde pgsql
+CREATE TABLE ordenes (
+  ID serial NOT NULL PRIMARY KEY,
+  info json NOT NULL
+);
+
+--Extraer JSON desde pgsql
+-- por clave cliente en formato json 
+SELECT 
+	info -> 'cliente' AS cliente
+FROM ordenes;
+
+-- Con formato string se agregó (->>)
+SELECT 
+	info ->> 'cliente' AS cliente
+FROM ordenes;
+
+-- Con WHERE (con una condición)
+SELECT 
+	info ->> 'cliente' AS cliente
+FROM ordenes
+WHERE info -> 'items' ->> 'producto' = 'Biberón';
+
+-- Hacer operaciones con objetos tipo json
+
+SELECT 
+  MIN(
+    CAST(
+      info -> 'items' ->> 'cantidad' AS INTEGER
+      )
+    ),
+  MAX(
+    CAST(
+      info -> 'items' ->> 'cantidad' AS INTEGER
+      )
+    ),
+   SUM(
+    CAST(
+      info -> 'items' ->> 'cantidad' AS INTEGER
+      )
+    ),
+  AVG(
+    CAST(
+      info -> 'items' ->> 'cantidad' AS INTEGER
+      )
+     )
+
+FROM ordenes;
+
+-- Conocer el top
+SELECT 
+	peliculas.pelicula_id AS id,
+	peliculas.titulo,
+	COUNT(*) AS numero_rentas,
+-- Para agregar la fila lugar con el orden	
+	ROW_NUMBER () OVER (
+		ORDER BY COUNT (*) DESC
+	) AS lugar
+FROM rentas
+	INNER JOIN inventarios ON rentas.inventario_id = inventarios.inventario_id
+	INNER JOIN peliculas ON inventarios.pelicula_id = peliculas.pelicula_id
+GROUP BY peliculas.pelicula_id
+ORDER BY numero_rentas DESC
+LIMIT 10;
